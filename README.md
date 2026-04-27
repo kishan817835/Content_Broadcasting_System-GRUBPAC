@@ -2,6 +2,8 @@
 
 Backend Developer – Technical Assignment | Stack: Node.js · MySQL · Redis · AWS S3
 
+**🚀 Live Demo:** https://content-broadcasting-system-grubpac.onrender.com  
+**🗄️ Database:** Aiven MySQL (Cloud-hosted)  
 ** Auto Database Setup:** When running with Docker, MySQL database and all tables are created automatically!
 
 ---
