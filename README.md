@@ -9,8 +9,45 @@ Backend Developer – Technical Assignment | Stack: Node.js · MySQL · Redis ·
 ** Health Check:** https://content-broadcasting-system-grubpac.onrender.com/  
 
 
-**�🗄️ Database:** Aiven MySQL (Cloud-hosted)  
+**�️ Database:** Aiven MySQL (Cloud-hosted)  
 ** Auto Database Setup:** When running with Docker, MySQL database and all tables are created automatically!
+
+---
+
+## 🛠️ Tech Stack Used
+
+**Backend & Runtime:**
+- **Node.js** - JavaScript runtime environment
+- **Express.js** - Web framework for API development
+
+**Database & Caching:**
+- **MySQL** - Primary database for data storage
+- **Redis** - Optional caching layer (can be enabled/disabled)
+
+**Authentication & Security:**
+- **JWT (JSON Web Tokens)** - User authentication & authorization
+- **bcrypt** - Password hashing (10 rounds)
+- **express-validator** - Input validation & sanitization
+
+**File Handling & Storage:**
+- **Multer** - File upload middleware
+- **AWS S3** - Optional cloud storage (can be enabled/disabled)
+- **Local Storage** - Default file storage option
+
+**Development & Deployment:**
+- **Docker & Docker Compose** - Containerization
+- **Render** - Cloud deployment platform
+- **Aiven MySQL** - Cloud-hosted database
+- **GitHub Actions** - CI/CD pipeline
+
+**API & Documentation:**
+- **RESTful APIs** - Standard HTTP methods
+- **CORS** - Cross-origin resource sharing
+- **Rate Limiting** - API protection (100 req/15min)
+
+**Testing & Quality:**
+- **npm audit** - Security vulnerability scanning
+- **Multi-node testing** - Node.js 18.x & 20.x compatibility
 
 ---
 
