@@ -1,0 +1,192 @@
+Content Broadcasting System - Architecture Notes
+=================================================
+
+I wrote this document to explain the key design decisions I made while building this system.
+Going through each part one by one.
+
+
+-------------------------------------------
+Authentication & RBAC Flow
+-------------------------------------------
+
+I went with JWT-based auth. When a user logs in, the server generates a token that expires
+in 24 hours. That token needs to be sent with every protected request as a Bearer token.
+
+Passwords are hashed using bcrypt with 10 salt rounds before storing. Never storing plain text.
+
+For roles, there are only two - principal and teacher. I've kept them completely separate at
+the middleware level. A teacher cannot hit principal endpoints and vice versa. The middleware
+checks the role from the decoded JWT and blocks the request early if it doesn't match.
+
+I also have a centralized error handler so auth failures always return clean, consistent
+responses without leaking sensitive info.
+
+
+-------------------------------------------
+Subject-based System Design
+-------------------------------------------
+
+Content is always tied to a subject (like Maths, Science, etc.). This was important because
+different subjects need to rotate independently of each other.
+
+Each teacher's content is isolated - one teacher's Maths content doesn't mix with another
+teacher's. The public API takes a teacher ID and optionally a subject, so students get
+content specific to their teacher.
+
+If a subject has no active content at a given time, it returns empty gracefully instead
+of throwing errors.
+
+
+-------------------------------------------
+Upload Handling
+-------------------------------------------
+
+Used Multer for handling file uploads. Accepted formats are JPG, PNG, and GIF only.
+File size is capped at 10MB (configurable via env variable).
+
+Filenames are generated using timestamps to avoid collisions - no two files will overwrite
+each other.
+
+By default everything goes to local storage in the uploads directory. If you set S3_ENABLED=true
+and provide AWS credentials, files go to S3 instead. If S3 fails for some reason, it automatically
+falls back to local storage so uploads don't break.
+
+File metadata (url, type, size) all gets stored in the database.
+
+
+-------------------------------------------
+Approval Workflow
+-------------------------------------------
+
+When a teacher uploads content, it starts with "uploaded" status, which quickly moves to
+"pending". The principal sees all pending content through a dedicated endpoint.
+
+Principal can either approve or reject. Rejection requires a reason - I made this mandatory
+so teachers know why their content was turned down and can fix it.
+
+Once approved, content becomes eligible for broadcasting. Rejected content is stored with
+the rejection reason so teachers can view it.
+
+The status flow is: uploaded -> pending -> approved / rejected
+
+Approving or rejecting also triggers Redis cache invalidation so the public API immediately
+reflects the change (if Redis is enabled).
+
+
+-------------------------------------------
+Scheduling and Rotation Logic
+-------------------------------------------
+
+This was the trickiest part of the whole system. Here's how I approached it:
+
+Content is only shown if it's approved AND the current UTC time falls between its
+start_time and end_time. If a teacher hasn't set a time window, the content won't show up.
+
+Subject rotation: every 30 minutes, the active subject changes. So if a teacher has Maths
+and Science content, it alternates every half hour.
+
+Within a subject, individual content pieces rotate every 5 minutes.
+
+The actual calculation I'm using:
+
+  subjectIndex = Math.floor(totalMinutes / 30) % subjects.length
+  contentIndex = Math.floor(totalMinutes / 5) % contentList.length
+
+totalMinutes is derived from the current UTC time (hours * 60 + minutes).
+
+This means the system is stateless - no cron jobs needed. Whoever hits the endpoint at
+any given moment gets the mathematically correct content for that time.
+
+One thing to keep in mind when testing locally from IST - the server runs on UTC. So
+11:30 AM IST = 6:00 AM UTC. Set your start_time and end_time accordingly.
+
+
+-------------------------------------------
+Database Design
+-------------------------------------------
+
+I went with MySQL because this system needs proper relational integrity. There are foreign
+keys between users and content, and content and analytics. Cascade deletes are set up so
+if a user gets removed, their content goes too.
+
+Main tables:
+
+Users - stores id, name, email, password_hash, role, created_at
+  role is an ENUM constrained to 'principal' and 'teacher' at the DB level
+
+Content - the main table. Has fields for basic info (title, description, subject),
+file info (url, type, size), workflow fields (status, rejection_reason, approved_by,
+approved_at), scheduling (start_time, end_time), and audit fields (created_at, uploaded_by)
+
+Content_analytics - tracks views per content item for the analytics endpoints
+
+I've added indexes on teacher_id, subject, and status since those are hit most frequently
+in queries. Connection pooling is set to 10 connections with no hard queue limit.
+
+
+-------------------------------------------
+Folder Structure
+-------------------------------------------
+
+src/
+├── app.js                  -> Express app setup, middleware registration, route mounting
+├── config/
+│   ├── database.js         -> MySQL connection pool setup and table initialization
+│   ├── redis.js            -> Redis config, handles graceful fallback if Redis is down
+│   └── aws.js              -> S3 config, only active when S3_ENABLED=true
+├── middlewares/
+│   ├── auth.js             -> JWT verification + role checking
+│   ├── upload.js           -> Multer setup with file type and size validation
+│   └── errorHandler.js     -> Catches everything that falls through other handlers
+├── models/
+│   ├── User.js             -> User queries, login lookup, profile fetch
+│   ├── Content.js          -> Content CRUD, approval/rejection logic
+│   └── Analytics.js        -> View tracking and reporting queries
+├── routes/
+│   ├── auth.js             -> /register, /login, /profile
+│   ├── users.js            -> User management (principal only)
+│   ├── content.js          -> Upload, approve, reject, status endpoints
+│   ├── public.js           -> /content/live routes, no auth needed
+│   └── analytics.js        -> Analytics endpoints for principal
+├── services/
+│   └── SchedulingService.js -> All the rotation logic lives here
+└── utils/
+    └── responseHelper.js   -> Standardized success/error response format
+
+
+-------------------------------------------
+Middleware Stack
+-------------------------------------------
+
+authenticateToken  -> runs on all protected routes, verifies JWT
+requireRole        -> role check, called with 'principal' or 'teacher' as argument
+upload             -> Multer + validation, switches between local and S3
+errorHandler       -> global catch-all at the bottom of middleware chain
+asyncHandler       -> wrapper so async route handlers don't need try-catch everywhere
+rateLimit          -> 100 requests per 15 minutes on public endpoints
+express-validator  -> input validation and sanitization on form fields
+CORS               -> configured for controlled cross-origin access
+
+
+-------------------------------------------
+Scalability Thinking
+-------------------------------------------
+
+Right now the system works well for moderate load. A few things I've built in for scaling:
+
+Redis caching on /content/live routes with 60s TTL. This means repeated student requests
+don't hammer the database. Cache gets cleared automatically on approve/reject.
+
+If Redis goes down, the code falls back to hitting MySQL directly. Nothing breaks.
+
+MySQL connection pooling at 10 connections means the app doesn't open a new DB connection
+per request.
+
+For future scaling I'd look at:
+- A queue (like Bull or BullMQ) for processing bulk uploads
+- CDN for serving uploaded files instead of local storage
+- Read replicas for analytics queries so they don't slow down the main DB
+- If this grows to multiple schools, a multi-tenant model with tenant isolation
+
+I intentionally kept Redis and S3 optional because not every deployment needs them.
+You can run the whole thing with just Node + MySQL and it works fine.
