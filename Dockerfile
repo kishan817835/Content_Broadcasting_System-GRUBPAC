@@ -18,11 +18,12 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY src ./src
 COPY package*.json ./
 
-RUN mkdir -p /app/uploads && \
-    chmod 755 /app/uploads
-
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
+
+RUN mkdir -p /app/uploads && \
+    chown -R nodejs:nodejs /app/uploads && \
+    chmod 755 /app/uploads
 
 USER nodejs
 
