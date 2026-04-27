@@ -16,8 +16,9 @@ I have tried to keep it modular and clean. The core flow works end to end and I 
 Easiest way is Docker — it handles MySQL and Redis for you:
 
 ```bash
-git clone <repository-url>
-cd content-broadcasting-system
+git clone https://github.com/kishan817835/Content_Broadcasting_System-GRUBPAC.git   
+
+cd Content_Broadcasting_System-GRUBPAC
 docker-compose up -d mysql redis
 npm install
 cp .env.example .env   # fill in your DB creds
