@@ -2,6 +2,8 @@
 
 Backend Developer – Technical Assignment | Stack: Node.js · MySQL · Redis · AWS S3
 
+** Auto Database Setup:** When running with Docker, MySQL database and all tables are created automatically!
+
 ---
 
 ## What This Is
