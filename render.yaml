@@ -1,0 +1,48 @@
+services:
+  # Type: Web Service
+  - type: web
+    name: content-broadcasting-api
+    env: node
+    plan: free
+    buildCommand: "npm install"
+    startCommand: "npm start"
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DB_HOST
+        fromDatabase:
+          name: content-broadcasting-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: content-broadcasting-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: content-broadcasting-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: content-broadcasting-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: content-broadcasting-db
+          property: password
+      - key: REDIS_ENABLED
+        value: false
+      - key: S3_ENABLED
+        value: false
+
+  # Type: MySQL Database
+  - type: pserv
+    name: content-broadcasting-db
+    env: mysql
+    plan: free
+    databases:
+      - name: content_broadcasting
+        user: content_user

@@ -1,0 +1,179 @@
+Content Broadcasting System - Enhanced Architecture Notes
+
+Authentication & RBAC Flow
+- JWT-based authentication with 24-hour expiration
+- Role-based access control: Principal and Teacher roles
+- Middleware protects routes based on user roles
+- Password hashing using bcryptjs (10 salt rounds)
+- Token verification on each protected request
+- Centralized error handling for authentication failures
+
+Subject-based System Design
+- Content organized by subjects (Maths, Science, etc.)
+- Each subject has independent rotation logic
+- Subjects rotate every 30 minutes in public API
+- Content within subjects rotates every 5 minutes
+- Teacher-specific content isolation
+- Analytics tracking for subject performance
+
+Enhanced Upload Handling Approach
+- Multer middleware with dual storage support
+- Local storage in uploads directory (fallback)
+- AWS S3 cloud storage (when configured)
+- File validation: JPG, PNG, GIF only
+- Maximum file size: 10MB (configurable)
+- Unique filename generation to prevent conflicts
+- Automatic storage switching based on configuration
+- File metadata stored in database with analytics tracking
+
+Approval Workflow Design
+- Teachers upload content with "uploaded" status
+- Principal can view all pending content
+- Principal can approve or reject content
+- Rejection requires reason
+- Approved content becomes available for broadcasting
+- Status flow: uploaded -> pending -> approved/rejected
+- Cache invalidation on approval/rejection
+- Analytics tracking for content views
+
+Advanced Scheduling/Rotation Logic (CRITICAL)
+- Time-based content activation using start_time and end_time
+- Subject rotation: 30-minute intervals
+- Content rotation within subject: 5-minute intervals
+- Current time determines active content
+- Redis caching for performance optimization
+- Graceful handling of no content scenarios
+- Teacher-specific scheduling isolation
+- Real-time view tracking for analytics
+
+Enhanced Database Design
+- MySQL for relational data integrity
+- Users table with role constraint
+- Content table with status enum and scheduling fields
+- Content_analytics table for view tracking
+- Foreign key relationships with cascade delete
+- Database indexing for performance optimization
+- Timestamp fields for audit trail
+- Content slots and schedule tables for future expansion
+
+Complete Folder Structure
+src/
+├── app.js (Express app setup with error handling)
+├── config/
+│   ├── database.js (MySQL connection and initialization)
+│   ├── redis.js (Redis caching configuration)
+│   └── aws.js (AWS S3 configuration)
+├── middlewares/
+│   ├── auth.js (Authentication and authorization)
+│   ├── upload.js (Enhanced file upload with S3 support)
+│   └── errorHandler.js (Centralized error handling)
+├── models/
+│   ├── User.js (User data operations)
+│   ├── Content.js (Content data operations)
+│   └── Analytics.js (Analytics and tracking operations)
+├── routes/
+│   ├── auth.js (Authentication endpoints)
+│   ├── users.js (User management endpoints)
+│   ├── content.js (Content management endpoints)
+│   ├── public.js (Public broadcasting with caching)
+│   └── analytics.js (Analytics endpoints)
+├── services/
+│   └── SchedulingService.js (Content rotation logic)
+└── utils/
+    └── responseHelper.js (Response formatting utilities)
+
+Advanced Middleware Usage
+- authenticateToken: JWT verification for protected routes
+- requireRole: Role-based access control
+- upload: Smart file upload with local/S3 switching
+- errorHandler: Centralized error handling with specific error types
+- asyncHandler: Async error wrapper for clean code
+- rateLimit: API rate limiting for public endpoints
+- express-validator: Input validation and sanitization
+
+Performance & Scalability Features
+- Redis caching for public API responses (60s TTL)
+- Database connection pooling for efficiency
+- Rate limiting for public API protection
+- Database indexing on frequently queried fields
+- Modular architecture for horizontal scaling
+- Prepared statements for query optimization
+- File storage abstraction for cloud migration
+- Analytics tracking for performance monitoring
+
+Comprehensive Error Handling
+- Centralized error handling middleware
+- Specific error types: Validation, JWT, Database, File Upload
+- Graceful degradation when services unavailable
+- Consistent error response format
+- Error logging for debugging
+- Database error code handling
+- Authentication failure handling
+
+Edge Case Handling 
+- No content available: Returns appropriate message
+- Invalid teacher ID: Returns 404 error
+- Invalid file types: Rejected with specific error message
+- Missing scheduling: Content not displayed
+- Expired content: Automatically filtered out
+- Redis unavailable: Graceful fallback to database
+- S3 unavailable: Automatic fallback to local storage
+- Authentication failures: Proper HTTP status codes
+- Rate limit exceeded: Clear error message
+
+Security & Monitoring Features
+- JWT secret environment variable
+- Password hashing with salt rounds
+- File type validation and size limits
+- Input sanitization and validation
+- SQL injection prevention through parameterized queries
+- CORS configuration for cross-origin requests
+- Rate limiting for API protection
+- Analytics tracking for usage monitoring
+- Real-time view tracking system
+
+Bonus Features Implementation
+- Redis Caching: Automatic caching of /content/live API
+- Rate Limiting: 100 requests per 15 minutes for public API
+- S3 Upload: Seamless cloud storage integration
+- Subject-wise Analytics: Comprehensive tracking system
+- Performance Monitoring: View counts and usage patterns
+- Graceful Service Degradation: Works without Redis/S3
+
+Configuration Management
+### Environment Variables
+- Database credentials and connection settings
+- JWT secret for authentication
+- File upload directory and size limits
+- Redis configuration for caching (optional)
+- AWS S3 credentials for cloud storage (optional)
+
+### Optional Features Configuration
+
+#### Redis Caching (Optional)
+- **Disabled by default**: `REDIS_ENABLED=false`
+- **Enable**: Set `REDIS_ENABLED=true` and start Redis service
+- **Behavior**: Caches public API responses for 60 seconds
+- **Fallback**: System continues without caching if Redis unavailable
+- **Performance**: Improves response times for public endpoints
+
+#### AWS S3 Storage (Optional)
+- **Disabled by default**: `S3_ENABLED=false`
+- **Enable**: Set `S3_ENABLED=true` and provide AWS credentials
+- **Behavior**: Stores uploaded files in cloud storage
+- **Fallback**: Automatic local storage if S3 fails
+- **File Access**: Provides public URLs for cloud-stored files
+
+#### Default Behavior
+When both features are disabled:
+- Files stored locally in `uploads/` directory
+- Direct database calls (no caching)
+- All core features fully functional
+- No external dependencies required
+
+### Deployment Considerations
+- Docker containerization support
+- Environment-based configuration
+- Graceful degradation when services unavailable
+- Production-ready error handling and logging
+- Optional service integration without breaking core functionality
