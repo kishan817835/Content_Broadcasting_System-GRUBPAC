@@ -324,7 +324,7 @@ docker exec -it content-broadcasting-mysql mysql -u root -p1234
 ## 📮 Postman Collection & API Testing
 
 ### **Direct API Testing**
-All API endpoints are documented in **`curl.md`** with ready-to-use commands that you can copy-paste directly into:
+All API endpoints are documented in **`Api_documentation.md`** with ready-to-use commands that you can copy-paste directly into:
 - **Terminal** (curl commands)
 - **Postman** (import as raw requests)
 - **Insomnia** (import as HTTP requests)
@@ -344,11 +344,11 @@ TEACHER_TOKEN=$(curl -s -X POST http://localhost:3000/api/auth/login \
   grep -o '"token":"[^"]*"' | cut -d'"' -f4)
 
 # Test all endpoints with provided examples
-# See curl.md for complete API reference
+# See Api_documentation.md for complete API reference
 ```
 
 ### **Complete API Reference**
-- **📋 curl.md**: 50+ ready-to-use API examples
+- **📋 Api_documentation.md**: 50+ ready-to-use API examples
 - **🔗 All Endpoints**: Auth, Content, Public, Analytics
 - **⚡ Quick Copy**: Direct terminal commands
 - **📝 Documentation**: Request/Response examples
@@ -362,7 +362,7 @@ TEACHER_TOKEN=$(curl -s -X POST http://localhost:3000/api/auth/login \
 - Error Handling & Edge Cases  
 - Bonus Features (Redis, S3, Rate Limiting)  
 
-**No Postman collection needed** - use curl.md for direct API testing!
+**No Postman collection needed** - use Api_documentation.md for direct API testing!
 
 ---
 
