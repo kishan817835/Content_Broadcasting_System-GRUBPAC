@@ -3,7 +3,13 @@
 Backend Developer – Technical Assignment | Stack: Node.js · MySQL · Redis · AWS S3
 
 **🚀 Live Demo:** https://content-broadcasting-system-grubpac.onrender.com  
-**🗄️ Database:** Aiven MySQL (Cloud-hosted)  
+** Live Content:** https://content-broadcasting-system-grubpac.onrender.com/content/live/3  
+
+
+** Health Check:** https://content-broadcasting-system-grubpac.onrender.com/  
+
+
+**�🗄️ Database:** Aiven MySQL (Cloud-hosted)  
 ** Auto Database Setup:** When running with Docker, MySQL database and all tables are created automatically!
 
 ---
@@ -381,10 +387,10 @@ https://your-app-name.onrender.com
 
 ```bash
 # Test health endpoint
-curl https://your-app-name.onrender.com/
+curl https://content-broadcasting-system-grubpac.onrender.com
 
 # Test API endpoints
-curl https://your-app-name.onrender.com/content/live/1
+curl https://content-broadcasting-system-grubpac.onrender.com/content/live/1
 ```
 
 ---
